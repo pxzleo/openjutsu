@@ -24,7 +24,7 @@ node("5", "TextGenerate", "Describe the face in picture 1",
      max_length=90, sampling_mode="off", thinking=False, use_default_template=True, mtp="auto", clip=["4", 0], image=["3", 0])
 track = dict(detector="bbox\\face_yolov8m.pt", confidence=0.35, crop_factor=2.5, canvas_width=512, canvas_height=512, canvas_mode="manual",
              smooth_window=21, size_smooth_window=51, smooth_method="gaussian", size_mode="per_frame", identity_track=True,
-             identity_threshold=0.28, select="largest", fallback_head_frac=0.5)
+             identity_threshold=0.28, fallback_head_frac=0.5)
 node("6", "H3FaceTrackCrop", "Track + crop the face", images=["1", 0], identity_reference=["2", 0],
      fallback_detector="segm\\person_yolov8m-seg.pt", **track)
 node("7", "H3FaceTrackCrop", "Face from picture 1", images=["2", 0], fallback_detector="none", **track)

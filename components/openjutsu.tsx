@@ -7,7 +7,7 @@ import type { NodeInfo } from "../lib/progress.ts";
 import { clipCount, clipStarts } from "../lib/clips.ts";
 import { CLIP_SECONDS, DEFAULT_TARGET, MARGINS, MAX_SEED, MIN_SECTION_SECONDS, MOTION_SIZES, PLACES, placeStart, RESOLUTIONS, CUSTOM_SIZE, canvasSize, timecode, type Margin, type MotionSize, type Resolution, type Section, type Size } from "../lib/simple.ts";
 import { MAX_CHARACTERS } from "../lib/advanced.ts";
-import { ACCELERATIONS, DEFAULT_DESCRIBER, DEFAULT_MODEL, hasSpeedLora, isSpeedLora, MAX_LORAS, STEPS, STRENGTH, type Acceleration, type Lora, type ModelFiles } from "../lib/model.ts";
+import { ACCELERATIONS, DEFAULT_DESCRIBER, DEFAULT_MODEL, hasSpeedLora, installedDefault, isSpeedLora, MAX_LORAS, STEPS, STRENGTH, type Acceleration, type Lora, type ModelFiles } from "../lib/model.ts";
 import type { EditMode, FitSummary, PaintKeyframe, PlacementKeyframe } from "../lib/object.ts";
 import { Welcome } from "./welcome.tsx";
 import { ObjectPlacement } from "./object-placement.tsx";
@@ -52,6 +52,7 @@ const POSTS: { id: Post; label: string }[] = [{ id: "face", label: "Fix faces" }
 const FACE_STYLE_TEXT: Record<FaceStyle, { label: string; hint: string }> = {
   photo: { label: "Match the photo", hint: "The face is redrawn from the photo: the closest likeness, but H3 makes up its own expressions and mouth movements." },
   mouth: { label: "Follow the mouth", hint: "The face follows the video's expressions and mouth movements; a little less like the photo." },
+  swap: { label: "Replace face", hint: "Use the original video and a photo of the new face. The workflow tracks the main face, including close-ups, and pastes the new face over it. The tracked person can change across cuts. Hair, clothes and background come from the source video." },
 };
 
 type EditTab = EditMode | "picture";
@@ -346,6 +347,8 @@ export function Openjutsu() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Could not read models from ComfyUI.");
       setFiles(result);
+      setDescriber((current) => installedDefault(current, DEFAULT_DESCRIBER, process.env.NEXT_PUBLIC_OPENJUTSU_DESCRIBER, result.textEncoders));
+      setTextEncoder((current) => installedDefault(current, DEFAULT_MODEL.textEncoder, process.env.NEXT_PUBLIC_OPENJUTSU_H3_ENCODER, result.textEncoders));
     } catch (error) {
       setModelsError(error instanceof Error ? error.message : "Could not read models from ComfyUI.");
     } finally {
@@ -932,8 +935,8 @@ export function Openjutsu() {
                   ))}
                 </div>
                 <p className="hint">
-                  {FACE_STYLE_TEXT[faceStyle].hint} Use the photo the video was made with. Only that person&apos;s face changes; faces
-                  taller than a fifth of the frame are already sharp and are left alone.
+                  {FACE_STYLE_TEXT[faceStyle].hint}
+                  {faceStyle !== "swap" && " Use the photo the video was made with. Faces taller than a fifth of the frame are left alone."}
                 </p>
               </>) : mode === "simple" ? (
                 <p className="hint">

@@ -128,7 +128,7 @@ function parseModel(form: FormData, available: ModelFiles): ModelSettings {
 function parseFace(form: FormData) {
   const picture = parsePicture(form.get("picture"));
   const style = String(form.get("style"));
-  if (!FACE_STYLES.includes(style as FaceStyle)) throw new Error("Choose Match the photo or Follow the mouth.");
+  if (!FACE_STYLES.includes(style as FaceStyle)) throw new Error("Choose Match the photo, Follow the mouth or Replace face.");
   const seed = Number(form.get("seed"));
   if (!Number.isInteger(seed) || seed < 0 || seed > MAX_SEED) throw new Error(`Seed must be a whole number from 0 to ${MAX_SEED}.`);
   const chunkSeconds = Number(form.get("clip_seconds"));

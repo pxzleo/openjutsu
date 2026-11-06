@@ -19,6 +19,11 @@ test("the export has the video, the picture and Follow the mouth on", () => {
   assert.ok(node(graph, "Reference Conditioning").inputs["ref_videos.ref_video_0"]);
 });
 
+test("the face trackers use the installed node's default face selection", () => {
+  assert.equal(node(graph, "Track + crop the face").inputs.select, undefined);
+  assert.equal(node(graph, "Face from picture 1").inputs.select, undefined);
+});
+
 test("Follow the mouth keeps the graph and sets the seed and chunk length", () => {
   const pruned = pruneFace(graph, settings("mouth"));
   assert.equal(Object.keys(pruned).length, Object.keys(graph).length);
@@ -34,6 +39,18 @@ test("Match the photo drops the blurred face and the motion reference", () => {
   assert.equal(node(pruned, "Face Fix Chunks").inputs.follow_mouth, undefined);
   const ref = node(pruned, "Reference Conditioning").inputs;
   assert.deepEqual(Object.keys(ref).filter((name) => name.startsWith("ref_")), ["ref_image_size", "ref_images.ref_image_0"]);
+});
+
+test("Replace face tracks the video subject, includes close-ups and only pastes the face", () => {
+  const swapped = pruneFace(graph, settings("swap"));
+  assert.equal(node(swapped, "Track + crop the face").inputs.identity_reference, undefined);
+  assert.equal(node(swapped, "Face Fix Chunks").inputs.skip_faces_above, 1);
+  assert.equal(node(swapped, "Face Fix Chunks").inputs.follow_mouth, undefined);
+  assert.deepEqual(node(swapped, "Reference Conditioning").inputs["ref_images.ref_image_0"], [nodeByTitle(swapped, "Face from picture 1"), 0]);
+  assert.equal(node(swapped, "Paste the face back").inputs.paste_region, "face_only");
+  assert.deepEqual(dangling(swapped), []);
+  assert.equal(node(graph, "Face Fix Chunks").inputs.skip_faces_above, 0.2);
+  assert.ok(node(graph, "Track + crop the face").inputs.identity_reference);
 });
 
 test("the steps go to the Schedule and the LoRAs into the sampler model", () => {

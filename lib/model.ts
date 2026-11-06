@@ -27,6 +27,10 @@ export const MAX_LORAS = 4;
 export const STEPS = { min: 1, max: 100 };
 export const STRENGTH = { min: -4, max: 4 };
 
+export function installedDefault(current: string, original: string, preferred: string | undefined, installed: string[]) {
+  return current === original && preferred && !installed.includes(current) && installed.includes(preferred) ? preferred : current;
+}
+
 export function isSpeedLora(lora: Lora) {
   return lora.speed === true || /dmad|light[ _-]?x2v|turbo|(?:^|[\/ _-])(?:[12468][ _-]?steps?|lightning)(?:[_. -]|$)/i.test(lora.name.replaceAll("\\", "/"));
 }

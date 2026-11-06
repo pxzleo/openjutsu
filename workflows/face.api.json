@@ -94,7 +94,6 @@
       "size_mode": "per_frame",
       "identity_track": true,
       "identity_threshold": 0.28,
-      "select": "largest",
       "fallback_head_frac": 0.5
     },
     "class_type": "H3FaceTrackCrop",
@@ -121,7 +120,6 @@
       "size_mode": "per_frame",
       "identity_track": true,
       "identity_threshold": 0.28,
-      "select": "largest",
       "fallback_head_frac": 0.5
     },
     "class_type": "H3FaceTrackCrop",

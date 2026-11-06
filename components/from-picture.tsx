@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { canvasSize, CUSTOM_SIZE, MAX_SEED, MIN_SECTION_SECONDS, MOTION_SIZES, PLACES, placeStart, RESOLUTIONS, timecode } from "../lib/simple.ts";
-import { MAX_LORAS, STEPS, STRENGTH } from "../lib/model.ts";
+import { DEFAULT_MODEL, installedDefault, MAX_LORAS, STEPS, STRENGTH } from "../lib/model.ts";
 import { DEFAULT_PICTURE_VIDEO, FRAME_RELIGHT_PROMPT, LIGHT_LOOKS, parsePictureVideoSettings, pictureFrames, RELIGHT_PROMPT, solarLoraFiles, type PictureVideoSettings } from "../lib/picture.ts";
 
 const PROMPT = "change <image 1> character pose follow the  <image 2> pose. keep the final image as same body cut as <image 2> . do not change the background of <image 1> and do not add anything extra in <image 1>.";
@@ -67,10 +67,19 @@ export function FromPicture({ initialVideo, initialPicture, start: initialStart 
     fetch("/api/models").then(async (response) => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      setFiles({ models: data.models ?? [], loras: data.loras ?? [], textEncoders: data.textEncoders ?? [], vaes: data.vaes ?? [] });
+      const loras: string[] = data.loras ?? [];
+      const encoders: string[] = data.textEncoders ?? [];
+      setFiles({ models: data.models ?? [], loras, textEncoders: encoders, vaes: data.vaes ?? [] });
       setSettings((current) => {
-        const defaults = solarLoraFiles(current.solarRank), installed = solarLoraFiles(current.solarRank, data.loras ?? []);
-        return { ...current, solarFourStep: current.solarFourStep === defaults.solarFourStep ? installed.solarFourStep : current.solarFourStep,
+        const defaults = solarLoraFiles(current.solarRank), installed = solarLoraFiles(current.solarRank, loras);
+        const savedDefaults = solarLoraFiles(current.solarRank, [current.solarFourStep, current.solarControl]);
+        const textEncoder = installedDefault(current.textEncoder, DEFAULT_MODEL.textEncoder, process.env.NEXT_PUBLIC_OPENJUTSU_H3_ENCODER, encoders);
+        const rank64 = solarLoraFiles(64, loras);
+        if (current.solarRank === 384 && current.solarFourStep === savedDefaults.solarFourStep && current.solarControl === savedDefaults.solarControl
+          && !Object.values(installed).every((file) => loras.includes(file)) && Object.values(rank64).every((file) => loras.includes(file))) {
+          return { ...current, textEncoder, solarRank: 64, ...rank64 };
+        }
+        return { ...current, textEncoder, solarFourStep: current.solarFourStep === defaults.solarFourStep ? installed.solarFourStep : current.solarFourStep,
           solarControl: current.solarControl === defaults.solarControl ? installed.solarControl : current.solarControl };
       });
     }).catch((error) => setModelError(error.message));
