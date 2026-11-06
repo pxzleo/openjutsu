@@ -4,6 +4,12 @@ import { mkdir, mkdtemp, open as openFile, rm, type FileHandle } from "node:fs/p
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { preferredLocale } from "./locale.ts";
+import { localizedError } from "./locale-errors.ts";
+
+function requestError(request: Request, message: string) {
+  return { error: localizedError(message, preferredLocale(request.headers.get("accept-language"))) };
+}
 
 export class HttpError extends Error {
   status: number;
@@ -67,7 +73,7 @@ export function authorize(request: Request) {
       const wait = Math.max(waitAfter(failures.get(client), FREE_FAILURES, now), waitAfter(shared, SHARED_FREE_FAILURES, now));
       if (wait > 0) {
         const seconds = Math.ceil(wait / 1000);
-        return Response.json({ error: `Too many failed sign-ins. Try again in ${seconds} s.` }, {
+        return Response.json(requestError(request, `Too many failed sign-ins. Try again in ${seconds} s.`), {
           status: 429,
           headers: { "Retry-After": String(seconds), "Cache-Control": "no-store" },
         });
@@ -80,7 +86,7 @@ export function authorize(request: Request) {
     } else {
       // A request without credentials is the browser asking for the sign-in prompt, not a guess.
       if (encoded) recordFailure(client, now);
-      return Response.json({ error: "Sign in to Openjutsu." }, {
+      return Response.json(requestError(request, "Sign in to Openjutsu."), {
         status: 401,
         headers: { "WWW-Authenticate": 'Basic realm="Openjutsu", charset="UTF-8"', "Cache-Control": "no-store" },
       });
@@ -90,7 +96,7 @@ export function authorize(request: Request) {
     const local = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i;
     const hosts = [new URL(request.url).host, request.headers.get("Host"), request.headers.get("X-Forwarded-Host")];
     if (hosts.some((host) => host !== null && !local.test(host))) {
-      return Response.json({ error: "Set OPENJUTSU_PASSWORD before exposing Openjutsu outside localhost." }, { status: 403 });
+      return Response.json(requestError(request, "Set OPENJUTSU_PASSWORD before exposing Openjutsu outside localhost."), { status: 403 });
     }
   }
   return null;
@@ -113,7 +119,7 @@ export function apiAccess(request: Request) {
   const origin = request.headers.get("Origin");
   const site = request.headers.get("Sec-Fetch-Site");
   if ((origin !== null && origin !== expectedOrigin) || (site !== null && site !== "same-origin" && site !== "none")) {
-    return Response.json({ error: "Cross-origin API requests are not allowed." }, { status: 403 });
+    return Response.json(requestError(request, "Cross-origin API requests are not allowed."), { status: 403 });
   }
   return null;
 }

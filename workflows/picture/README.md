@@ -1,5 +1,7 @@
 # From picture pipelines
 
+English · [简体中文](README.zh-CN.md)
+
 These are ComfyUI API-format workflows. Drop a JSON file onto ComfyUI, or use **File → Open**.
 
 The app uses them under **Object swap → From picture**. Choose the video and character picture, then **Generate preview image**. Compare the FLUX image with the raw frame, adjust the prompt or generate another image if needed, and click **Use this image** when ready. Set the video length, video resolution, motion-reference resolution, models, LoRAs, steps and seed, then click **Render video**. Previewing never starts H3 automatically. The video stage loads the saved preview image and does not rerun FLUX. Both stages use `COMFYUI_URL` directly; comfy-api-proxy is not required for this tab. Pending jobs and the selected preview resume when returning to the tab or refreshing the page.

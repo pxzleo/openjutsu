@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
+import { useT } from "../lib/locale-provider.tsx";
 import { placementAt, type PaintKeyframe, type PlacementKeyframe } from "../lib/object.ts";
 
 type Box = Omit<PlacementKeyframe, "frame">;
@@ -10,6 +11,7 @@ type Props = { src: string; start: number; end: number; width: number; height: n
 );
 
 export function ObjectPlacement(props: Props) {
+  const t = useT();
   const { src, start, end, width, height, points } = props;
   const painting = props.mode === "paint";
   const video = useRef<HTMLVideoElement>(null);
@@ -125,18 +127,20 @@ export function ObjectPlacement(props: Props) {
 
   return (
     <div className="placement">
-      <strong>{painting ? "Paint edit area" : "Place the new object"}</strong>
-      <p className="hint">{painting ? "Paint extra space around the part SAM tracks. The paint follows its position and size; the tracked area is also edited." : "Drag a box around the whole object's space, including its height above the surface and room for its shadow."}</p>
+      <strong>{painting ? t("Paint edit area", "涂画编辑区域") : t("Place the new object", "放置新物体")}</strong>
+      <p className="hint">{painting
+        ? t("Paint extra space around the part SAM tracks. The paint follows its position and size; the tracked area is also edited.", "在 SAM 跟踪区域周围涂画额外空间。涂画范围会随跟踪目标的位置和大小变化，跟踪区域也会一并编辑。")
+        : t("Drag a box around the whole object's space, including its height above the surface and room for its shadow.", "拖出一个方框，圈出物体占用的全部空间。请预留物体高出表面的部分和阴影的位置。")}</p>
       {painting && <>
         <div className="segmented">
-          <button className={!eraser ? "on" : ""} aria-pressed={!eraser} onClick={() => setEraser(false)}>Brush</button>
-          <button className={eraser ? "on" : ""} aria-pressed={eraser} onClick={() => setEraser(true)}>Eraser</button>
+          <button className={!eraser ? "on" : ""} aria-pressed={!eraser} onClick={() => setEraser(false)}>{t("Brush", "画笔")}</button>
+          <button className={eraser ? "on" : ""} aria-pressed={eraser} onClick={() => setEraser(true)}>{t("Eraser", "橡皮擦")}</button>
         </div>
-        <label>Brush size: {brush} px<input type="range" min={4} max={160} step={2} value={brush} onChange={(e) => setBrush(Number(e.target.value))} /></label>
+        <label>{t(`Brush size: ${brush} px`, `画笔大小 ${brush} 像素`)}<input type="range" min={4} max={160} step={2} value={brush} onChange={(e) => setBrush(Number(e.target.value))} /></label>
       </>}
       <video ref={video} src={src} preload="auto" muted playsInline hidden
         onLoadedMetadata={() => { if (video.current) video.current.currentTime = time; }} onLoadedData={draw} onSeeked={draw} />
-      <canvas ref={canvas} width={cw} height={ch} aria-label={painting ? "Paint the edit area" : "Draw the new object's placement box"} role="img"
+      <canvas ref={canvas} width={cw} height={ch} aria-label={painting ? t("Paint the edit area", "涂画编辑区域") : t("Draw the new object's placement box", "画出新物体的放置框")} role="img"
         onPointerDown={(event) => {
           event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
           origin.current = position(event);
@@ -153,18 +157,20 @@ export function ObjectPlacement(props: Props) {
           origin.current = null; setDraft(null);
         }}
         onPointerCancel={() => { if (painting) savePaint(); origin.current = null; setDraft(null); }} />
-      <label>{painting ? "Paint" : "Placement"} frame: {time.toFixed(2)} s
+      <label>{painting ? t(`Paint frame: ${time.toFixed(2)} s`, `涂画帧 ${time.toFixed(2)} 秒`) : t(`Placement frame: ${time.toFixed(2)} s`, `放置帧 ${time.toFixed(2)} 秒`)}
         <input type="range" min={start} max={Math.max(start, end - 1 / 24)} step={1 / 24} value={time}
           onChange={(event) => setTime(Number(event.target.value))} />
       </label>
       <div className="row">
-        <button className="secondary" disabled={!points.some((p) => p.frame === frame)} onClick={() => remove()}>Remove this keyframe</button>
-        <button className="secondary" disabled={!points.length} onClick={() => remove(true)}>{painting ? "Clear paint" : "Clear placement"}</button>
+        <button className="secondary" disabled={!points.some((p) => p.frame === frame)} onClick={() => remove()}>{t("Remove this keyframe", "删除当前关键帧")}</button>
+        <button className="secondary" disabled={!points.length} onClick={() => remove(true)}>{painting ? t("Clear paint", "清除所有涂画") : t("Clear placement", "清除所有放置框")}</button>
       </div>
       {points.length > 0 && <div className="placement-keys">{points.map((p) => (
-        <button key={p.frame} className={p.frame === frame ? "on" : ""} onClick={() => setTime(Math.max(start, Math.min(end - 1 / 24, p.frame / 24)))}>{(p.frame / 24).toFixed(2)} s</button>
+        <button key={p.frame} className={p.frame === frame ? "on" : ""} onClick={() => setTime(Math.max(start, Math.min(end - 1 / 24, p.frame / 24)))}>{(p.frame / 24).toFixed(2)}{t(" s", " 秒")}</button>
       ))}</div>}
-      <p className="hint">{painting ? "Scrub to paint another keyframe. Paint follows SAM during generation and turns off when tracking is lost. This editor shows paint on its painted frames. Changing the tracked part, video, section or resolution clears paint." : "One box stays fixed on screen. If the camera moves, scrub forward and draw more boxes; placement moves between them. This is manual placement, not automatic tracking. Changing the video, section or resolution clears the boxes."}</p>
+      <p className="hint">{painting
+        ? t("Scrub to paint another keyframe. Paint follows SAM during generation and turns off when tracking is lost. This editor shows paint on its painted frames. Changing the tracked part, video, section or resolution clears paint.", "拖动进度条，在其他关键帧上涂画。生成时，涂画区域会随 SAM 的跟踪结果移动，丢失跟踪时停止生效。编辑器仅在已涂画的帧上显示涂画范围。更换跟踪目标、视频、片段或分辨率会清除涂画。")
+        : t("One box stays fixed on screen. If the camera moves, scrub forward and draw more boxes; placement moves between them. This is manual placement, not automatic tracking. Changing the video, section or resolution clears the boxes.", "只画一个框时，放置位置会固定在画面上。如果镜头移动，请把进度条拖到更晚的位置，再画出更多放置框，位置会在相邻框之间过渡。请手动设置放置位置。更换视频、片段或分辨率会清除所有放置框。")}</p>
     </div>
   );
 }
